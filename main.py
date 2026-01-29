@@ -1,20 +1,21 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
 from fastapi import FastAPI.Form
+from pydantic import BaseModel
 import base64
 import uuid
 
 app = FastAPI()
 
-class AudioRequest(BaseModel):
-    audio_base64: str
-    language: str = "en"
+
 
 @app.post("/detect-voice")
-def detect_voice(data: AudioRequest):
+def detect_voice(
+    audio_base64: str = Form(...),
+    language: str = Form("en"),
+    audio_format: str = Form("mp3")
+):
     try:
         # Decode base64 audio
-        audio_bytes = base64.b64decode(data.audio_base64)
+        audio_bytes = base64.b64decode(audio_base64)
 
         # Save audio temporarily
         filename = f"audio_{uuid.uuid4()}.mp3"
@@ -44,3 +45,4 @@ def detect_voice(data: AudioRequest):
             "error": str(e)
 
         }
+
