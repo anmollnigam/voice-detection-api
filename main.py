@@ -1,8 +1,13 @@
-from fastapi import FastAPI, Form
-import base64
+from fastapi import FastAPI, Header
+from pydantic import BaseModel
+import requests
 import uuid
 
 app = FastAPI()
+
+class AudioRequest(BaseModel):
+    audio_url: str
+    language: str = "en"
 
 @app.get("/")
 def root():
@@ -10,14 +15,18 @@ def root():
 
 @app.post("/detect-voice")
 def detect_voice(
-    audio_base64: str = Form(...),
-    language: str = Form("en"),
-    audio_format: str = Form("mp3")
+    data: AudioRequest,
+    authorization: str = Header(None)
 ):
-    try:
-        audio_bytes = base64.b64decode(audio_base64)
+    if not authorization:
+        return {"error": "Missing API key"}
 
-        filename = f"audio_{uuid.uuid4()}.{audio_format}"
+    try:
+        # Download audio from URL
+        response = requests.get(data.audio_url, timeout=15)
+        audio_bytes = response.content
+
+        filename = f"audio_{uuid.uuid4()}.mp3"
         with open(filename, "wb") as f:
             f.write(audio_bytes)
 
@@ -31,9 +40,9 @@ def detect_voice(
             confidence = 0.76
 
         return {
-            "classification": classification,
-            "confidence_score": confidence,
-            "language": language
+            "prediction": classification,
+            "confidence": confidence,
+            "language": data.language
         }
 
     except Exception as e:
