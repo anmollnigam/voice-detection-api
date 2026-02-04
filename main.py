@@ -16,11 +16,9 @@ def root():
 @app.post("/detect-voice")
 def detect_voice(
     data: AudioRequest,
-    authorization: str = Header(None)
+    
 ):
-    if not authorization:
-        return {"error": "Missing API key"}
-
+    
     try:
         # Download audio from URL
         response = requests.get(data.audio_url, timeout=15)
@@ -40,10 +38,10 @@ def detect_voice(
             confidence = 0.76
 
         return {
-            "prediction": classification,
-            "confidence": confidence,
-            "language": data.language
+           "status":"success",
+            "reply":"Voice processed successfully"
         }
 
     except Exception as e:
         return {"error": str(e)}
+
