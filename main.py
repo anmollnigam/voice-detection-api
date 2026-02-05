@@ -1,47 +1,45 @@
-from fastapi import FastAPI, Header
+from fastapi import FastAPI
 from pydantic import BaseModel
-import requests
-import uuid
 
 app = FastAPI()
 
-class AudioRequest(BaseModel):
-    audio_url: str
-    language: str = "en"
+# ----- Request format -----
+class Message(BaseModel):
+    sender: str
+    text: str
+    timestamp: int
 
+class RequestBody(BaseModel):
+    sessionId: str
+    message: Message
+
+
+# ----- Root check -----
 @app.get("/")
 def root():
     return {"status": "API is running"}
 
-@app.post("/detect-voice")
-def detect_voice(
-    data: AudioRequest,
-    
-):
-    
-    try:
-        # Download audio from URL
-        response = requests.get(data.audio_url, timeout=15)
-        audio_bytes = response.content
 
-        filename = f"audio_{uuid.uuid4()}.mp3"
-        with open(filename, "wb") as f:
-            f.write(audio_bytes)
+# ----- Scam detection endpoint -----
+@app.post("/detect-scam")
+def detect_scam(data: RequestBody):
 
-        file_size_kb = len(audio_bytes) / 1024
+    text = data.message.text.lower()
 
-        if file_size_kb < 20:
-            classification = "AI-generated"
-            confidence = 0.82
-        else:
-            classification = "Human"
-            confidence = 0.76
+    scam_keywords = [
+        "blocked", "suspended", "verify",
+        "urgent", "account", "bank",
+        "click", "link", "otp"
+    ]
 
-        return {
-           "status":"success",
-            "reply":"Voice processed successfully"
-        }
+    is_scam = any(word in text for word in scam_keywords)
 
-    except Exception as e:
-        return {"error": str(e)}
+    if is_scam:
+        reply = "This message looks suspicious. Please do not share any personal information."
+    else:
+        reply = "This message does not appear to be a scam."
 
+    return {
+        "status": "success",
+        "reply": reply
+    }
